@@ -2,29 +2,33 @@ import React, {useState} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { nanoid } from "@reduxjs/toolkit";
 import { postAdded } from "./postsSlice";
+import {addNewPost} from './postsSlice';
 
 const AddPostForm = () => {
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [userId, setUserId] = useState('');
+    const [addRequestStatus, setAddRequestStatus] = useState('idle');
 
     const dispatch = useDispatch();
     const users = useSelector(state => state.users);
 
-    const onSavePost = () => {
-        if (title && content) {
-            dispatch(
-                postAdded({
-                    title,
-                    content,
-                    userId
-                })
-            )
+    const onSavePost = async () => {
+        if (canSave) {
+            try {
+            setAddRequestStatus('pending');
+            await dispatch(addNewPost({title, content, user: userId})).unwrap();
             setTitle('')
             setContent('')
+            setUserId('')
+        } catch (e) {
+            console.error('failed to save the post: ', e);
+        } finally {
+            setAddRequestStatus('idle');
         }
     }
+}
 
     const onTitleChange = (e) => {
         setTitle(e.target.value);
@@ -36,7 +40,7 @@ const AddPostForm = () => {
 
     const onAuthorchange = (e) => setUserId(e.target.value);
 
-    const canSave = Boolean(title) && Boolean(content) && Boolean(userId);
+    const canSave = Boolean(title) && Boolean(content) && Boolean(userId) && addRequestStatus === 'idle';
 
     const usersOptions = users.map(user => (
         <option key={user.id} value={user.id}>
